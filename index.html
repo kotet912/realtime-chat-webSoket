@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Чат в реальном времени</title>
+</head>
+
+<body>
+  <h1>Чат в реальном времени</h1>
+  <div id="chat"></div>
+  <div id="message-container">
+    <input type="text" id="username" placeholder="Ваше имя..." />
+    <input type="text" id="message" placeholder="Введите сообщение..." />
+    <button id="send">Отправить</button>
+  </div>
+
+  <script>
+    const socket = new WebSocket('ws://localhost:8080');
+    const chat = document.getElementById('chat');
+    const messageInput = document.getElementById('message');
+    const sendButton = document.getElementById('send');
+    const usernameInput = document.getElementById('username');
+
+    sendButton.onclick = function () {
+      if (socket.readyState !== WebSocket.OPEN) {
+        alert('Соединение с сервером отсутствует.');
+        return;
+      }
+
+      const message = messageInput.value.trim();
+      const username = usernameInput.value.trim() || 'Аноним';
+
+      if (message) {
+        const data = {
+          username: username,
+          message: message
+        };
+        socket.send(JSON.stringify(data));
+        messageInput.value = '';
+      }
+    };
+
+
+    socket.onopen = function (event) {
+      chat.innerHTML += '<div><em>Соединение установлено.</em></div>';
+    };
+
+    socket.onmessage = function (event) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const data = JSON.parse(reader.result);
+        const messageElement = `<div><strong>${data.username}</strong> [${data.time}]: ${data.message}</div>`;
+        chat.innerHTML += messageElement;
+        chat.scrollTop = chat.scrollHeight;
+      };
+      reader.readAsText(event.data);
+    };
+
+
+
+    socket.onerror = function (error) {
+      chat.innerHTML += '<div><em>Ошибка соединения.</em></div>';
+    };
+
+    socket.onclose = function (event) {
+      chat.innerHTML += '<div><em>Соединение закрыто.</em></div>';
+    };
+
+    sendButton.onclick = function () {
+      const message = messageInput.value;
+      if (message) {
+        socket.send(message);
+        messageInput.value = '';
+      }
+    };
+  </script>
+</body>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+  }
+
+  h1 {
+    color: #333;
+  }
+
+  #chat {
+    width: 600px;
+    height: 400px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    overflow-y: scroll;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  #chat div {
+    margin-bottom: 10px;
+  }
+
+  #chat div strong {
+    color: #007BFF;
+  }
+
+  #message-container {
+    display: flex;
+  }
+
+  #username,
+  #message {
+    width: calc(50% - 10px);
+    padding: 10px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  #send {
+    padding: 10px 20px;
+    border: none;
+    background-color: #007BFF;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  #send:hover {
+    background-color: #0056b3;
+  }
+</style>
+
+</html>
