@@ -17,10 +17,37 @@
 
   <script>
     const socket = new WebSocket('ws://localhost:8080');
-    const chat = document.getElementById('chat');
+
+    const usernameInput = document.getElementById('username');
     const messageInput = document.getElementById('message');
     const sendButton = document.getElementById('send');
-    const usernameInput = document.getElementById('username');
+    const chat = document.getElementById('chat');
+
+    socket.onopen = function (event) {
+      chat.innerHTML += '<div><em>Соединение установлено.</em></div>';
+    };
+
+    socket.onmessage = function (event) {
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (e) {
+        console.error('Ошибка при парсинге сообщения:', e);
+        return;
+      }
+      console.log('Получено сообщение:', data);
+      const messageElement = `<div><strong>${data.username}</strong> [${data.time}]: ${data.message}</div>`;
+      chat.innerHTML += messageElement;
+      chat.scrollTop = chat.scrollHeight;
+    };
+
+    socket.onerror = function (error) {
+      chat.innerHTML += '<div><em>Произошла ошибка соединения.</em></div>';
+    };
+
+    socket.onclose = function (event) {
+      chat.innerHTML += '<div><em>Соединение закрыто. Попробуйте перезагрузить страницу.</em></div>';
+    };
 
     sendButton.onclick = function () {
       if (socket.readyState !== WebSocket.OPEN) {
@@ -36,41 +63,8 @@
           username: username,
           message: message
         };
+        console.log('Отправка данных:', data);
         socket.send(JSON.stringify(data));
-        messageInput.value = '';
-      }
-    };
-
-
-    socket.onopen = function (event) {
-      chat.innerHTML += '<div><em>Соединение установлено.</em></div>';
-    };
-
-    socket.onmessage = function (event) {
-      const reader = new FileReader();
-      reader.onload = function () {
-        const data = JSON.parse(reader.result);
-        const messageElement = `<div><strong>${data.username}</strong> [${data.time}]: ${data.message}</div>`;
-        chat.innerHTML += messageElement;
-        chat.scrollTop = chat.scrollHeight;
-      };
-      reader.readAsText(event.data);
-    };
-
-
-
-    socket.onerror = function (error) {
-      chat.innerHTML += '<div><em>Ошибка соединения.</em></div>';
-    };
-
-    socket.onclose = function (event) {
-      chat.innerHTML += '<div><em>Соединение закрыто.</em></div>';
-    };
-
-    sendButton.onclick = function () {
-      const message = messageInput.value;
-      if (message) {
-        socket.send(message);
         messageInput.value = '';
       }
     };

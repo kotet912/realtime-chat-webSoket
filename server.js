@@ -9,16 +9,24 @@ server.on('connection', (socket) => {
   clients.push(socket);
 
   socket.on('message', (message) => {
-    const msgData = JSON.parse(message.toString());
-    const time = new Date().toLocaleTimeString();
+    console.log('Получено сырое сообщение:', message.toString());
 
+    let msgData;
+    try {
+      msgData = JSON.parse(message.toString());
+    } catch (error) {
+      console.error('Ошибка при парсинге JSON:', error);
+      return; // Прерываем обработку, если сообщение не является валидным JSON
+    }
+
+    const time = new Date().toLocaleTimeString();
     const dataToSend = {
-      username: msgData.username,
-      message: msgData.message,
-      time: time
+      username: msgData.username || 'Аноним',
+      message: msgData.message || '',
+      time: time,
     };
 
-    console.log(`[${time}] ${msgData.username}: ${msgData.message}`);
+    console.log(`[${time}] ${dataToSend.username}: ${dataToSend.message}`);
 
     // Рассылка сообщения всем подключенным клиентам
     clients.forEach((client) => {
@@ -28,17 +36,12 @@ server.on('connection', (socket) => {
     });
   });
 
+  socket.on('close', () => {
+    console.log('Пользователь отключился.');
+    clients = clients.filter((client) => client !== socket);
+  });
 
   socket.on('error', (error) => {
     console.error('Ошибка сокета:', error);
   });
-
-  socket.onerror = function (error) {
-    chat.innerHTML += '<div><em>Произошла ошибка соединения.</em></div>';
-  };
-
-  socket.onclose = function (event) {
-    chat.innerHTML += '<div><em>Соединение закрыто. Попробуйте перезагрузить страницу.</em></div>';
-  };
 });
-
